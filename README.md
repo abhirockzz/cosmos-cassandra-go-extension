@@ -17,7 +17,7 @@ clusterConfig.RetryPolicy = retry.NewCosmosRetryPolicy(3)
 err := cs.Query(insertQuery).Bind(id, amount, state, time.Now()).Retry(policy).Exec()
 ```
 
-For an example of how to use this, please see this sample project - github.com/abhirockzz/cosmos-rate-limiting
+For an example of how to use this, please see this sample project - github.com/abhirockzz/cosmos-rate-limiting (coming soon)
 
 > Disclaimer: this is a purely experimental (personal) project and not an officially supported Microsoft library
 

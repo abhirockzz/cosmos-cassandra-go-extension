@@ -20,7 +20,7 @@ type CosmosRetryPolicy struct {
 const defaultGrowingBackOffTimeMs = 1000
 const defaultFixedBackOffTimeMs = 5000
 
-// NewCosmosRetryPolicy returns a CosmosRetryPolicy
+// NewCosmosRetryPolicy returns a CosmosRetryPolicy with default values for growing and fixed back-off time (in ms)
 func NewCosmosRetryPolicy(maxRetryCount int) *CosmosRetryPolicy {
 	return &CosmosRetryPolicy{MaxRetryCount: maxRetryCount, FixedBackOffTimeMs: defaultFixedBackOffTimeMs, GrowingBackOffTimeMs: defaultGrowingBackOffTimeMs}
 }

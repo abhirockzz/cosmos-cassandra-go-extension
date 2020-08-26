@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/stretchr/testify/assert"
 )
 
 const rateLimitedErrMsg = `Request rate is large: ActivityID=c268afb6-7367-4ff8-b06b-b7e2d1269f55, RetryAfterMs=42, Additional details='Response status code does not indicate success: TooManyRequests (429); Substatus: 3200; ActivityId: c268afb6-7367-4ff8-b06b-b7e2d1269f55; Reason: ({
@@ -36,9 +37,7 @@ func TestRetryAllowed(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(te *testing.T) {
 			actual := tc.policy.Attempt(MockRetryableQuery{})
-			if !actual {
-				te.Error("query will not be retried for infinite max retry policy")
-			}
+			assert.True(te, actual, "query will not be retried")
 		})
 	}
 
@@ -62,10 +61,7 @@ func TestRetryDuration(t *testing.T) {
 		t.Run(tc.name, func(te *testing.T) {
 			expectedRetryAfterMs := time.Duration(tc.expectedResult)
 			actualRetryAfterMs := tc.policy.getRetryAfterMs(tc.errMsg)
-
-			if actualRetryAfterMs != expectedRetryAfterMs {
-				te.Errorf("expected retry duration was not correct. expected %v actual %v", expectedRetryAfterMs, actualRetryAfterMs)
-			}
+			assert.Equal(te, expectedRetryAfterMs, actualRetryAfterMs)
 		})
 	}
 }
@@ -77,9 +73,8 @@ func TestRetryDurationForRateLimitedErrorInfiniteRetryWhenRetryMsUnavailable(t *
 	actualRetryAfterMs := p.getRetryAfterMs(rateLimitedErrMsgWithoutRetryAfterMs)
 	// since numAttempts is 2, the retry duration will be more than 2s
 	threshold := time.Duration(2) * time.Second
-
 	if actualRetryAfterMs < threshold {
-		t.Errorf("expected retry duration was not correct. expected %v actual %v", threshold, actualRetryAfterMs)
+		t.Errorf("expected retry duration - %v. actual - %v", threshold, actualRetryAfterMs)
 	}
 }
 
@@ -105,10 +100,7 @@ func TestGetRetryType(t *testing.T) {
 			p := NewCosmosRetryPolicy(2)
 			actualRetryType := p.GetRetryType(tc.errorType)
 			expectedRetryType := tc.expectedRetryType
-
-			if actualRetryType != expectedRetryType {
-				te.Errorf("expected retry type was not correct. expected %v actual %v", expectedRetryType, actualRetryType)
-			}
+			assert.Equal(te, expectedRetryType, actualRetryType)
 		})
 	}
 }
@@ -126,58 +118,4 @@ func (mrq MockRetryableQuery) GetConsistency() gocql.Consistency {
 }
 func (mrq MockRetryableQuery) Context() context.Context {
 	return context.Background()
-}
-
-// old
-
-func _TestRetryAllowedIfMaxRetryCountIsInfinite(t *testing.T) {
-	p := NewCosmosRetryPolicy(-1)
-	actual := p.Attempt(MockRetryableQuery{})
-
-	if !actual {
-		t.Error("query will not be retried for infinite max retry policy")
-	}
-}
-
-func _TestRetryAllowedIfMaxRetryCountIsFinite(t *testing.T) {
-	p := NewCosmosRetryPolicy(10)
-	actual := p.Attempt(MockRetryableQuery{})
-
-	if !actual {
-		t.Error("query will not be retried for infinite max retry policy")
-	}
-}
-
-func _TestRetryDurationForValidRateLimitedError(t *testing.T) {
-
-	p := NewCosmosRetryPolicy(5)
-	expectedRetryAfterMs := time.Duration(42) * time.Millisecond
-	actualRetryAfterMs := p.getRetryAfterMs(rateLimitedErrMsg)
-
-	if actualRetryAfterMs != expectedRetryAfterMs {
-		t.Errorf("expected retry after MS was not correct. expected %v actual %v", expectedRetryAfterMs, actualRetryAfterMs)
-	}
-}
-
-func _TestRetryDurationForRateLimitedErrorWhenRetryMsUnavailable(t *testing.T) {
-	p := NewCosmosRetryPolicy(3)
-	expectedRetryAfterMs := time.Duration(p.FixedBackOffTimeMs) * time.Millisecond
-
-	actualRetryAfterMs := p.getRetryAfterMs(rateLimitedErrMsgWithoutRetryAfterMs)
-
-	if actualRetryAfterMs != expectedRetryAfterMs {
-		t.Errorf("expected retry duration was not correct. expected %v actual %v", expectedRetryAfterMs, actualRetryAfterMs)
-	}
-}
-
-func _TestRetryDurationForNonRateLimitedError(t *testing.T) {
-	errMsg := `today is not your day!`
-	p := NewCosmosRetryPolicy(5)
-
-	expectedRetryAfterMs := time.Duration(-1)
-	actualRetryAfterMs := p.getRetryAfterMs(errMsg)
-
-	if actualRetryAfterMs != expectedRetryAfterMs {
-		t.Errorf("expected retry after MS was not correct. expected %v actual %v", expectedRetryAfterMs, actualRetryAfterMs)
-	}
 }
